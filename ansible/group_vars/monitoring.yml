@@ -16,4 +16,4 @@ ansible_ssh_common_args: >-
   -o ProxyCommand="ssh -i /Users/salonichaudhary/.ssh/grafana-vm-demo-key.pem
   -o StrictHostKeyChecking=no
   -o UserKnownHostsFile=/dev/null
-  -W %h:%p ubuntu@13.234.20.151"
+  -W %h:%p ubuntu@13.233.208.13"
