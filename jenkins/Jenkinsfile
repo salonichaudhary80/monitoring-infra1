@@ -26,7 +26,7 @@ pipeline {
         AWS_DEFAULT_REGION = 'ap-south-1'
         ANSIBLE_CONFIG     = "${WORKSPACE}/ansible/ansible.cfg"
         TF_IN_AUTOMATION   = 'true'
-        PATH = "/opt/homebrew/bin:/usr/local/bin:/usr/bin:/bin:/usr/sbin:/sbin"
+        PATH               = "/opt/homebrew/bin:/usr/local/bin:/usr/bin:/bin:/usr/sbin:/sbin"
     }
 
     options {
@@ -156,47 +156,59 @@ pipeline {
         }
 
         // ----------------------------------------------------
-// 7. Ansible Configure Servers
-// ----------------------------------------------------
-stage('Ansible: Configure Servers') {
-    when {
-        expression {
-            params.ACTION == 'apply'
-        }
-    }
+        // 7. Ansible Configure Servers
+        // ----------------------------------------------------
+        stage('Ansible: Configure Servers') {
+            when {
+                expression {
+                    params.ACTION == 'apply'
+                }
+            }
 
-    steps {
-        withCredentials([
-            [
-                $class: 'AmazonWebServicesCredentialsBinding',
-                credentialsId: 'aws-monitoring-demo'
-            ],
-            sshUserPrivateKey(
-                credentialsId: 'monitoring-ssh-key',
-                keyFileVariable: 'SSH_KEY'
-            )
-        ]) {
-            dir('ansible') {
-                sh '''
-                    echo "== Dynamic inventory: servers found in AWS =="
-                    ansible-inventory --graph
+            steps {
+                withCredentials([
+                    [
+                        $class: 'AmazonWebServicesCredentialsBinding',
+                        credentialsId: 'aws-monitoring-demo'
+                    ],
+                    sshUserPrivateKey(
+                        credentialsId: 'monitoring-ssh-key',
+                        keyFileVariable: 'SSH_KEY'
+                    )
+                ]) {
+                    dir('ansible') {
+                        sh '''
+                            echo "== Dynamic inventory: servers found in AWS =="
+                            ansible-inventory --graph
 
-                    echo "== Testing SSH to bastion =="
-                    ssh -vvv \
-                        -i "$SSH_KEY" \
-                        -o StrictHostKeyChecking=no \
-                        -o UserKnownHostsFile=/dev/null \
-                        ubuntu@13.232.234.75 "echo BASTION_SSH_OK"
+                            echo "== Getting bastion public IP from dynamic inventory =="
 
-                    echo "== Testing Ansible SSH =="
-                    ansible monitoring -m ping \
-                        -e "ssh_key_file=$SSH_KEY" \
-                        -vvv
-                '''
+                            BASTION_IP=$(ansible-inventory \
+                                -i inventory/aws_ec2.yml \
+                                --host bastion-host \
+                                | python3 -c 'import sys,json; print(json.load(sys.stdin)["public_ip_address"])')
+
+                            echo "Bastion IP discovered dynamically: $BASTION_IP"
+
+                            echo "== Testing SSH to bastion =="
+
+                            ssh -vvv \
+                                -i "$SSH_KEY" \
+                                -o StrictHostKeyChecking=no \
+                                -o UserKnownHostsFile=/dev/null \
+                                ubuntu@"$BASTION_IP" "echo BASTION_SSH_OK"
+
+                            echo "== Testing Ansible SSH =="
+
+                            ansible monitoring -m ping \
+                                -e "ssh_key_file=$SSH_KEY" \
+                                -vvv
+                        '''
+                    }
+                }
             }
         }
-    }
-}
+
         // ----------------------------------------------------
         // 8. Terraform Destroy
         // ----------------------------------------------------
