@@ -156,42 +156,47 @@ pipeline {
         }
 
         // ----------------------------------------------------
-        // 7. Ansible Configure Servers
-        // ----------------------------------------------------
-        stage('Ansible: Configure Servers') {
-            when {
-                expression {
-                    params.ACTION == 'apply'
-                }
-            }
+// 7. Ansible Configure Servers
+// ----------------------------------------------------
+stage('Ansible: Configure Servers') {
+    when {
+        expression {
+            params.ACTION == 'apply'
+        }
+    }
 
-            steps {
-                withCredentials([
-                    [
-                        $class: 'AmazonWebServicesCredentialsBinding',
-                        credentialsId: 'aws-monitoring-demo'
-                    ],
-                    sshUserPrivateKey(
-                        credentialsId: 'monitoring-ssh-key',
-                        keyFileVariable: 'SSH_KEY'
-                    )
-                ]) {
-                    dir('ansible') {
-                        sh '''
-                            echo "== Dynamic inventory: servers found in AWS =="
-                            ansible-inventory --graph
+    steps {
+        withCredentials([
+            [
+                $class: 'AmazonWebServicesCredentialsBinding',
+                credentialsId: 'aws-monitoring-demo'
+            ],
+            sshUserPrivateKey(
+                credentialsId: 'monitoring-ssh-key',
+                keyFileVariable: 'SSH_KEY'
+            )
+        ]) {
+            dir('ansible') {
+                sh '''
+                    echo "== Dynamic inventory: servers found in AWS =="
+                    ansible-inventory --graph
 
-                            echo "== Installing node_exporter, VictoriaMetrics, vmagent, Grafana =="
+                    echo "== Testing SSH to bastion =="
+                    ssh -vvv \
+                        -i "$SSH_KEY" \
+                        -o StrictHostKeyChecking=no \
+                        -o UserKnownHostsFile=/dev/null \
+                        ubuntu@13.232.234.75 "echo BASTION_SSH_OK"
 
-                            ansible monitoring -m ping \
-                                 -e "ssh_key_file=$SSH_KEY" \
-                                 -vvv
-                        '''
-                    }
-                }
+                    echo "== Testing Ansible SSH =="
+                    ansible monitoring -m ping \
+                        -e "ssh_key_file=$SSH_KEY" \
+                        -vvv
+                '''
             }
         }
-
+    }
+}
         // ----------------------------------------------------
         // 8. Terraform Destroy
         // ----------------------------------------------------
