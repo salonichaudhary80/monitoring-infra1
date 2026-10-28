@@ -1,0 +1,147 @@
+// ------------------------------------------------------------
+// jenkins/Jenkinsfile - the CI/CD pipeline
+//
+// Build with Parameters:
+//   ACTION = apply   -> Dependencies > Init > Validate > Fmt > Plan > Apply > Ansible
+//   ACTION = destroy -> Dependencies > Init > Validate > Fmt > Plan (destroy) > Destroy
+//
+// Jenkins credentials needed (Manage Jenkins > Credentials):
+//   aws-access-key-id      Secret text
+//   aws-secret-access-key  Secret text
+//   ec2-ssh-key            SSH Username with private key (username: ubuntu, paste the .pem)
+// ------------------------------------------------------------
+pipeline {
+    agent any
+
+    parameters {
+        choice(name: 'ACTION', choices: ['apply', 'destroy'], description: 'apply = create everything, destroy = delete everything')
+    }
+
+    environment {
+        AWS_ACCESS_KEY_ID     = credentials('aws-access-key-id')
+        AWS_SECRET_ACCESS_KEY = credentials('aws-secret-access-key')
+        AWS_DEFAULT_REGION    = 'ap-south-1'
+        ANSIBLE_CONFIG        = "${WORKSPACE}/ansible/ansible.cfg"
+        TF_IN_AUTOMATION      = 'true'
+    }
+
+    options {
+        disableConcurrentBuilds()   // never run two builds on the same infrastructure at once
+    }
+
+    stages {
+
+        stage('Dependencies') {
+            steps {
+                sh '''
+                    echo "== Tools on this Jenkins machine =="
+                    terraform -version
+                    ansible --version
+
+                    echo "== Ansible AWS collection (for the dynamic inventory) =="
+                    ansible-galaxy collection install -r ansible/requirements.yml
+
+                    echo "== boto3 (Python library the AWS inventory needs) =="
+                    PY=$(ansible --version | grep "python version" | awk -F'[()]' '{print $(NF-1)}')
+                    echo "Ansible uses Python: $PY"
+                    if "$PY" -c "import boto3, botocore" 2>/dev/null; then
+                        echo "boto3 already installed"
+                    else
+                        "$PY" -m pip install --quiet boto3 botocore || "$PY" -m pip install --quiet --break-system-packages boto3 botocore
+                    fi
+                '''
+            }
+        }
+
+        stage('Terraform Init') {
+            steps {
+                dir('terraform') {
+                    sh 'terraform init -input=false'
+                }
+            }
+        }
+
+        stage('Terraform Validate') {
+            steps {
+                dir('terraform') {
+                    sh 'terraform validate'
+                }
+            }
+        }
+
+        stage('Terraform Fmt') {
+            steps {
+                dir('terraform') {
+                    // fails if any file is badly formatted (run "terraform fmt -recursive" to fix)
+                    sh 'terraform fmt -check -recursive -diff'
+                }
+            }
+        }
+
+        stage('Terraform Plan') {
+            steps {
+                dir('terraform') {
+                    script {
+                        if (params.ACTION == 'destroy') {
+                            sh 'terraform plan -destroy -input=false -out=tfplan'
+                        } else {
+                            sh 'terraform plan -input=false -out=tfplan'
+                        }
+                    }
+                }
+            }
+        }
+
+        stage('Terraform Apply') {
+            when { expression { params.ACTION == 'apply' } }
+            steps {
+                dir('terraform') {
+                    sh 'terraform apply -input=false tfplan'
+                }
+            }
+        }
+
+        stage('Ansible: Configure Servers') {
+            when { expression { params.ACTION == 'apply' } }
+            steps {
+                dir('ansible') {
+                    withCredentials([sshUserPrivateKey(credentialsId: 'ec2-ssh-key', keyFileVariable: 'SSH_KEY')]) {
+                        sh '''
+                            echo "== Dynamic inventory: servers found in AWS =="
+                            ansible-inventory --graph
+
+                            echo "== Installing node_exporter, VictoriaMetrics, vmagent, Grafana =="
+                            ansible-playbook site.yml -e "ssh_key_file=$SSH_KEY"
+                        '''
+                    }
+                }
+            }
+        }
+
+        stage('Terraform Destroy') {
+            when { expression { params.ACTION == 'destroy' } }
+            steps {
+                dir('terraform') {
+                    sh 'terraform apply -input=false tfplan'   // applies the destroy plan from the Plan stage
+                }
+            }
+        }
+    }
+
+    post {
+        success {
+            script {
+                if (params.ACTION == 'apply') {
+                    dir('terraform') {
+                        sh 'echo "Grafana is ready: $(terraform output -raw grafana_url)   (user: admin)"'
+                    }
+                } else {
+                    echo 'Everything has been deleted.'
+                }
+            }
+        }
+        failure {
+            echo 'Build failed. Open the red stage and read its log.'
+        }
+    }
+}

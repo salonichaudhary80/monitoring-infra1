@@ -1,0 +1,13 @@
+# Created by Ansible
+[Unit]
+Description=VictoriaMetrics (metrics database on port 8428)
+After=network-online.target
+
+[Service]
+ExecStart=/opt/victoriametrics/victoria-metrics-prod -storageDataPath=/var/lib/victoriametrics -retentionPeriod={{ retention_period }}
+# systemd creates /var/lib/victoriametrics to keep the data
+StateDirectory=victoriametrics
+Restart=always
+
+[Install]
+WantedBy=multi-user.target

@@ -1,0 +1,19 @@
+---
+# ------------------------------------------------------------
+# group_vars/monitoring.yml - how to log in to the monitoring servers
+#
+# The servers are in PRIVATE subnets (no public IP), so Ansible
+# "jumps" through the bastion host. The bastion's public IP also
+# comes from the dynamic inventory - nothing is hard-coded.
+# ------------------------------------------------------------
+ansible_user: ubuntu
+ansible_host: "{{ private_ip_address }}"
+ansible_ssh_private_key_file: "/Users/salonichaudhary/.ssh/grafana-vm-demo-key.pem"
+
+ansible_ssh_common_args: >-
+  -o StrictHostKeyChecking=no
+  -o UserKnownHostsFile=/dev/null
+  -o ProxyCommand="ssh -i /Users/salonichaudhary/.ssh/grafana-vm-demo-key.pem
+  -o StrictHostKeyChecking=no
+  -o UserKnownHostsFile=/dev/null
+  -W %h:%p ubuntu@13.234.20.151"

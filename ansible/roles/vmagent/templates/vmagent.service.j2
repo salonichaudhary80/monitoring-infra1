@@ -1,0 +1,13 @@
+# Created by Ansible
+[Unit]
+Description=vmagent (collects metrics and writes them to VictoriaMetrics)
+After=network-online.target victoriametrics.service
+
+[Service]
+ExecStart=/opt/victoriametrics/vmagent-prod -promscrape.config=/etc/vmagent/scrape.yml -remoteWrite.url=http://localhost:8428/api/v1/write -remoteWrite.tmpDataPath=/var/lib/vmagent
+# systemd creates /var/lib/vmagent (a buffer if VictoriaMetrics is down for a moment)
+StateDirectory=vmagent
+Restart=always
+
+[Install]
+WantedBy=multi-user.target

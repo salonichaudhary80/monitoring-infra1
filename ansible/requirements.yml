@@ -1,0 +1,6 @@
+# Ansible add-ons this project needs.
+# Installed by the Jenkins "Dependencies" stage:
+#   ansible-galaxy collection install -r requirements.yml
+collections:
+  - name: amazon.aws   # gives us the aws_ec2 dynamic inventory
+    version: ">=6.0.0"

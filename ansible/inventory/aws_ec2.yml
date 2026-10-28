@@ -1,0 +1,15 @@
+plugin: amazon.aws.aws_ec2
+
+regions:
+  - ap-south-1
+
+filters:
+  tag:Project: monitoring-infra
+  instance-state-name: running
+
+hostnames:
+  - tag:Name
+
+keyed_groups:
+  - key: ec2_tags.Role
+    separator: ""

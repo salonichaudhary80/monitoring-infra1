@@ -1,0 +1,43 @@
+---
+# vmagent: every 15 s it collects numbers from node_exporter on BOTH servers
+# and writes them into the VictoriaMetrics on its own server.
+
+- name: Create the VictoriaMetrics folder (vmagent lives here too)
+  ansible.builtin.file:
+    path: /opt/victoriametrics
+    state: directory
+    mode: "0755"
+
+- name: Download and unpack vmagent
+  ansible.builtin.unarchive:
+    src: "https://github.com/VictoriaMetrics/VictoriaMetrics/releases/download/{{ victoriametrics_version }}/vmutils-linux-amd64-{{ victoriametrics_version }}.tar.gz"
+    dest: /opt/victoriametrics
+    remote_src: true
+    creates: /opt/victoriametrics/vmagent-prod
+
+- name: Create the vmagent config folder
+  ansible.builtin.file:
+    path: /etc/vmagent
+    state: directory
+    mode: "0755"
+
+- name: Write the list of servers vmagent must scrape
+  ansible.builtin.template:
+    src: scrape.yml.j2
+    dest: /etc/vmagent/scrape.yml
+    mode: "0644"
+  notify: Restart vmagent
+
+- name: Create the vmagent service
+  ansible.builtin.template:
+    src: vmagent.service.j2
+    dest: /etc/systemd/system/vmagent.service
+    mode: "0644"
+  notify: Restart vmagent
+
+- name: Start vmagent
+  ansible.builtin.systemd:
+    name: vmagent
+    enabled: true
+    state: started
+    daemon_reload: true

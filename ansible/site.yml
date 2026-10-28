@@ -1,0 +1,29 @@
+---
+# ------------------------------------------------------------
+# site.yml - the main Ansible file
+# Runs on every server in the "monitoring" group (found by the
+# dynamic inventory) and installs the 4 boxes from the diagram.
+# ------------------------------------------------------------
+- name: Install the monitoring stack on monitoring-a and monitoring-b
+  hosts: monitoring
+  become: true
+  gather_facts: false
+
+  pre_tasks:
+    - name: Wait until the server accepts SSH (through the bastion)
+      ansible.builtin.wait_for_connection:
+        timeout: 600
+
+    - name: Wait until the server has finished booting
+      ansible.builtin.command: cloud-init status --wait
+      changed_when: false
+      failed_when: false   # newer Ubuntu returns a warning code even when boot is fine
+
+    - name: Collect server facts
+      ansible.builtin.setup:
+
+  roles:
+    - node_exporter     # 1. shows CPU / memory / disk on :9100
+    - victoriametrics   # 2. stores the numbers on :8428
+    - vmagent           # 3. collects numbers from BOTH servers
+    - grafana           # 4. dashboards on :3000

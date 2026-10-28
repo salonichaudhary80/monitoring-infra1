@@ -1,0 +1,11 @@
+# Created by Ansible
+[Unit]
+Description=node_exporter (server metrics on port 9100)
+After=network-online.target
+
+[Service]
+ExecStart=/opt/node_exporter-{{ node_exporter_version }}.linux-amd64/node_exporter
+Restart=always
+
+[Install]
+WantedBy=multi-user.target

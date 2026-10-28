@@ -1,0 +1,9 @@
+# Created by Ansible
+# Grafana reads its data from VictoriaMetrics on the same server.
+# VictoriaMetrics speaks the Prometheus language, so the type is "prometheus".
+apiVersion: 1
+datasources:
+  - name: VictoriaMetrics
+    type: prometheus
+    url: http://localhost:8428
+    isDefault: true

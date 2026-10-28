@@ -1,0 +1,29 @@
+---
+# VictoriaMetrics: the time-series database that stores all the numbers (port 8428)
+
+- name: Create the VictoriaMetrics folder
+  ansible.builtin.file:
+    path: /opt/victoriametrics
+    state: directory
+    mode: "0755"
+
+- name: Download and unpack VictoriaMetrics
+  ansible.builtin.unarchive:
+    src: "https://github.com/VictoriaMetrics/VictoriaMetrics/releases/download/{{ victoriametrics_version }}/victoria-metrics-linux-amd64-{{ victoriametrics_version }}.tar.gz"
+    dest: /opt/victoriametrics
+    remote_src: true
+    creates: /opt/victoriametrics/victoria-metrics-prod
+
+- name: Create the VictoriaMetrics service
+  ansible.builtin.template:
+    src: victoriametrics.service.j2
+    dest: /etc/systemd/system/victoriametrics.service
+    mode: "0644"
+  notify: Restart victoriametrics
+
+- name: Start VictoriaMetrics
+  ansible.builtin.systemd:
+    name: victoriametrics
+    enabled: true
+    state: started
+    daemon_reload: true

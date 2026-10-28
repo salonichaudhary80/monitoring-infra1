@@ -1,0 +1,41 @@
+---
+# Grafana: the website with dashboards (port 3000). It reads from VictoriaMetrics.
+
+- name: Add Grafana's signing key (proves the download is genuine)
+  ansible.builtin.get_url:
+    url: https://apt.grafana.com/gpg.key
+    dest: /etc/apt/keyrings/grafana.asc
+    mode: "0644"
+
+- name: Add Grafana's package repository
+  ansible.builtin.apt_repository:
+    repo: "deb [signed-by=/etc/apt/keyrings/grafana.asc] https://apt.grafana.com stable main"
+    filename: grafana
+    update_cache: false   # the next task updates the package list
+
+- name: Install Grafana
+  ansible.builtin.apt:
+    name: grafana
+    update_cache: true
+    lock_timeout: 600     # wait if Ubuntu is still installing its own updates
+
+- name: Set the Grafana admin password
+  ansible.builtin.lineinfile:
+    path: /etc/grafana/grafana.ini
+    regexp: '^;?admin_password ='
+    line: "admin_password = {{ grafana_admin_password }}"
+  notify: Restart grafana
+
+# Blue arrow in the diagram: Grafana queries the VictoriaMetrics on the same server
+- name: Connect Grafana to VictoriaMetrics
+  ansible.builtin.template:
+    src: datasource.yml.j2
+    dest: /etc/grafana/provisioning/datasources/victoriametrics.yml
+    mode: "0644"
+  notify: Restart grafana
+
+- name: Start Grafana
+  ansible.builtin.systemd:
+    name: grafana-server
+    enabled: true
+    state: started

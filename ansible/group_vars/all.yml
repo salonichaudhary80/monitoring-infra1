@@ -1,0 +1,16 @@
+---
+# ------------------------------------------------------------
+# group_vars/all.yml - all settings in one place
+# ------------------------------------------------------------
+
+# Software versions
+node_exporter_version: "1.9.1"
+victoriametrics_version: "v1.110.0"
+
+retention_period: "30d"              # VictoriaMetrics keeps data for 30 days
+scrape_interval: "15s"               # vmagent collects new numbers every 15 seconds
+grafana_admin_password: "Admin@123"  # Grafana login (user: admin). Change it!
+
+# Path to your EC2 .pem key.
+# Jenkins overrides this automatically with the "ec2-ssh-key" credential.
+ssh_key_file: "~/.ssh/grafana-vm-demo-key.pem"
