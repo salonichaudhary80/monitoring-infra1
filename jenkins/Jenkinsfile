@@ -183,8 +183,9 @@ pipeline {
 
                             echo "== Installing node_exporter, VictoriaMetrics, vmagent, Grafana =="
 
-                            ansible-playbook site.yml \
-                                -e "ssh_key_file=$SSH_KEY"
+                            ansible monitoring -m ping \
+                                 -e "ssh_key_file=$SSH_KEY" \
+                                 -vvv
                         '''
                     }
                 }
