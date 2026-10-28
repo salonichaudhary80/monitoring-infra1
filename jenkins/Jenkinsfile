@@ -26,6 +26,7 @@ pipeline {
         AWS_DEFAULT_REGION = 'ap-south-1'
         ANSIBLE_CONFIG     = "${WORKSPACE}/ansible/ansible.cfg"
         TF_IN_AUTOMATION   = 'true'
+        PATH = "/opt/homebrew/bin:/usr/local/bin:/usr/bin:/bin:/usr/sbin:/sbin"
     }
 
     options {
