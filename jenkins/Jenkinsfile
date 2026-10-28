@@ -75,7 +75,11 @@ pipeline {
                     ]
                 ]) {
                     dir('terraform') {
-                        sh 'terraform init -input=false -reconfigure'
+                        sh '''
+                            rm -rf .terraform
+                            rm -f .terraform/terraform.tfstate
+                            terraform init -input=false -reconfigure
+                        '''
                     }
                 }
             }
