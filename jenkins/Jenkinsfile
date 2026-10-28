@@ -75,7 +75,7 @@ pipeline {
                     ]
                 ]) {
                     dir('terraform') {
-                        sh 'terraform init -input=false -migrate-state'
+                        sh 'terraform init -input=false -reconfigure'
                     }
                 }
             }
