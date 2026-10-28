@@ -8,12 +8,12 @@
 # ------------------------------------------------------------
 ansible_user: ubuntu
 ansible_host: "{{ private_ip_address }}"
-ansible_ssh_private_key_file: "/Users/salonichaudhary/.ssh/grafana-vm-demo-key.pem"
+ansible_ssh_private_key_file: "{{ ssh_key_file }}"
 
 ansible_ssh_common_args: >-
   -o StrictHostKeyChecking=no
   -o UserKnownHostsFile=/dev/null
-  -o ProxyCommand="ssh -i /Users/salonichaudhary/.ssh/grafana-vm-demo-key.pem
+  -o ProxyCommand="ssh -i {{ ssh_key_file }}
   -o StrictHostKeyChecking=no
   -o UserKnownHostsFile=/dev/null
-  -W %h:%p ubuntu@13.233.208.13"
+  -W %h:%p ubuntu@{{ hostvars['bastion-host'].public_ip_address }}"
