@@ -9,3 +9,4 @@ output "monitoring_instance_ids" {
 output "monitoring_private_ips" {
   value = zipmap(aws_instance.monitoring[*].tags.Name, aws_instance.monitoring[*].private_ip)
 }
+

@@ -183,11 +183,7 @@ pipeline {
 
                             echo "== Getting bastion public IP from dynamic inventory =="
 
-                            BASTION_IP=$(ansible-inventory \
-                                -i inventory/aws_ec2.yml \
-                                --host bastion-host \
-                                | python3 -c 'import sys,json; print(json.load(sys.stdin)["public_ip_address"])')
-
+                            BASTION_IP=$(terraform -chdir=../terraform output -raw bastion_public_ip)
                             echo "Bastion IP discovered dynamically: $BASTION_IP"
 
                             echo "== Testing SSH to bastion =="
