@@ -199,6 +199,11 @@ pipeline {
                             ansible monitoring -m ping \
                                 -e "ssh_key_file=$SSH_KEY" \
                                 -vvv
+
+                            echo "== Configuring monitoring servers =="
+
+                            ansible-playbook site.yml \
+                                -e "ssh_key_file=$SSH_KEY"
                         '''
                     }
                 }
