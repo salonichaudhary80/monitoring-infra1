@@ -2,7 +2,7 @@
 # terraform.tfvars - YOUR values. Change the first 2 lines.
 # ------------------------------------------------------------
 
-my_ip    = "106.219.162.74/32"
+my_ip    = "106.219.164.71/32"
 key_name = "grafana-vm-demo-key" # EC2 key pair name in Mumbai
 
 region               = "ap-south-1"
